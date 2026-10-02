@@ -1,0 +1,116 @@
+{% load allauth %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up — CareerForge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-display { font-family: 'Space Grotesk', sans-serif; }
+        .mesh {
+            background:
+                radial-gradient(circle at 20% 30%, rgba(245, 158, 11, 0.15), transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(245, 158, 11, 0.08), transparent 40%),
+                #0a0a0a;
+        }
+        .input-field:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15); }
+    </style>
+</head>
+<body class="bg-[#0a0a0a] text-slate-100 h-screen overflow-hidden">
+    <div class="flex h-full">
+
+        <!-- Left panel -->
+        <div class="hidden lg:flex lg:w-1/2 mesh flex-col justify-between p-12 border-r border-white/5">
+            <div class="font-display text-xl font-bold tracking-tight">
+                Career<span class="text-amber-500">Forge</span>
+            </div>
+            <div class="max-w-md">
+                <h1 class="font-display text-4xl font-bold leading-tight mb-4">
+                    Built for job seekers.<br>
+                    <span class="text-amber-500">Sharpened by AI.</span>
+                </h1>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Upload your resume, get matched against real listings, and walk into interviews already knowing what they'll ask.
+                </p>
+            </div>
+            <div class="text-slate-600 text-xs">© 2026 CareerForge</div>
+        </div>
+
+        <!-- Right panel -->
+        <div class="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#0e0e0e] overflow-y-auto">
+            <div class="w-full max-w-sm py-8">
+                <div class="lg:hidden font-display text-xl font-bold mb-8">
+                    Career<span class="text-amber-500">Forge</span>
+                </div>
+
+                <h2 class="font-display text-2xl font-semibold mb-1">Create your account</h2>
+                <p class="text-slate-500 text-sm mb-8">Start matching with the right jobs today</p>
+
+                {% if form.non_field_errors %}
+                <div class="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                    {{ form.non_field_errors.0 }}
+                </div>
+                {% endif %}
+
+                <form method="post" action="{% url 'account_signup' %}">
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label class="block text-xs font-medium text-slate-400 mb-2">Username</label>
+                        <input type="text" name="username" required
+                            class="input-field w-full px-4 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 text-sm text-slate-100 placeholder-slate-600 outline-none transition"
+                            placeholder="yourname" autofocus>
+                        {% if form.username.errors %}
+                        <p class="text-red-400 text-xs mt-1">{{ form.username.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-xs font-medium text-slate-400 mb-2">Email</label>
+                        <input type="email" name="email" required
+                            class="input-field w-full px-4 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 text-sm text-slate-100 placeholder-slate-600 outline-none transition"
+                            placeholder="you@example.com">
+                        {% if form.email.errors %}
+                        <p class="text-red-400 text-xs mt-1">{{ form.email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-xs font-medium text-slate-400 mb-2">Password</label>
+                        <input type="password" name="password1" required
+                            class="input-field w-full px-4 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 text-sm text-slate-100 placeholder-slate-600 outline-none transition"
+                            placeholder="••••••••">
+                        {% if form.password1.errors %}
+                        <p class="text-red-400 text-xs mt-1">{{ form.password1.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-xs font-medium text-slate-400 mb-2">Confirm Password</label>
+                        <input type="password" name="password2" required
+                            class="input-field w-full px-4 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 text-sm text-slate-100 placeholder-slate-600 outline-none transition"
+                            placeholder="••••••••">
+                        {% if form.password2.errors %}
+                        <p class="text-red-400 text-xs mt-1">{{ form.password2.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit"
+                        class="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-sm font-semibold transition">
+                        Create account
+                    </button>
+                </form>
+
+                <p class="mt-6 text-center text-sm text-slate-500">
+                    Already have an account?
+                    <a href="{% url 'account_login' %}" class="text-amber-500 hover:text-amber-400 font-medium">Sign in</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

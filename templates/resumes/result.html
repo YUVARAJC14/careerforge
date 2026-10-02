@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Resume Analysis — CareerForge{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="font-display text-3xl font-bold mb-1">Resume Originality Check</h1>
+    <p class="text-slate-500">How your resume reads to an AI-content detector.</p>
+</div>
+
+<div class="p-6 rounded-xl bg-white/[0.03] border border-white/10 mb-8">
+    <div class="flex items-center justify-between mb-4">
+        <span class="text-slate-500 text-xs uppercase tracking-wide">AI-Content Likelihood</span>
+        {% if resume.ai_content_score > 60 %}
+            <span class="text-xs px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 font-medium">Flagged</span>
+        {% elif resume.ai_content_score > 35 %}
+            <span class="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 font-medium">Needs review</span>
+        {% else %}
+            <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">Looks natural</span>
+        {% endif %}
+    </div>
+
+    <div class="flex items-end gap-3 mb-3">
+        <span class="font-display text-5xl font-bold {% if resume.ai_content_score > 60 %}text-red-400{% elif resume.ai_content_score > 35 %}text-amber-500{% else %}text-emerald-400{% endif %}">
+            {{ resume.ai_content_score }}
+        </span>
+        <span class="text-slate-500 text-sm mb-2">/ 100</span>
+    </div>
+
+    <div class="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
+        <div class="h-full rounded-full {% if resume.ai_content_score > 60 %}bg-red-400{% elif resume.ai_content_score > 35 %}bg-amber-500{% else %}bg-emerald-400{% endif %}" style="width: {{ resume.ai_content_score }}%"></div>
+    </div>
+
+    <p class="text-slate-500 text-xs mt-4">
+        {% if resume.ai_content_score > 60 %}
+            Several sections read as likely AI-generated. Consider revising the flagged lines below.
+        {% elif resume.ai_content_score > 35 %}
+            Some sections show AI-like patterns. Worth a quick review.
+        {% else %}
+            Reads as natural, human-written content.
+        {% endif %}
+    </p>
+</div>
+
+{% if flagged_sentences %}
+<div class="mb-8">
+    <h2 class="font-display text-lg font-semibold mb-4">Flagged Sentences</h2>
+    <div class="space-y-3">
+        {% for sentence in flagged_sentences %}
+        <div class="p-4 rounded-lg bg-amber-500/[0.05] border border-amber-500/20">
+            <p class="text-slate-300 text-sm mb-2" contenteditable="false">{{ sentence }}</p>
+            <button class="text-xs text-amber-500 hover:text-amber-400 font-medium" onclick="this.previousElementSibling.contentEditable=true; this.previousElementSibling.focus();">
+                Edit this line
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<a href="{% url 'job_matches' %}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-sm font-semibold transition">
+    See job matches for this resume →
+</a>
+{% endblock %}

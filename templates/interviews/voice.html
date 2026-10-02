@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Voice Interview — CareerForge{% endblock %}
+
+{% block content %}
+<div class="flex flex-col items-center justify-center min-h-[70vh] text-center">
+    <div class="relative w-40 h-40 mb-8 flex items-center justify-center">
+        <div id="orb-ring" class="absolute inset-0 rounded-full bg-amber-500/10 transition-all duration-300"></div>
+        <div id="orb-core" class="relative w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/30 transition-all duration-300"></div>
+    </div>
+
+    <p id="status-text" class="text-slate-400 text-sm mb-2">Getting ready...</p>
+    <p id="question-text" class="font-display text-xl font-semibold max-w-lg mb-4"></p>
+    <p id="transcript-text" class="text-slate-500 text-sm max-w-lg italic min-h-[1.5em]"></p>
+
+    <div id="voice-unsupported" class="hidden mt-6 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm max-w-md">
+        Voice mode needs Chrome's speech features, which aren't available in this browser.
+    </div>
+</div>
+
+<style>
+@keyframes pulse-ring { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.6); opacity: 0; } }
+.pulsing { animation: pulse-ring 1.5s ease-out infinite; }
+</style>
+
+<script>
+const questions = {{ questions_json|safe }};
+const sessionId = {{ session.id }};
+const GREETING_TEXT = "{{ greeting|escapejs }}";
+
+const orbCore = document.getElementById('orb-core');
+const orbRing = document.getElementById('orb-ring');
+const statusText = document.getElementById('status-text');
+const questionText = document.getElementById('question-text');
+const transcriptText = document.getElementById('transcript-text');
+
+function getCookie(name) {
+    const parts = `; ${document.cookie}`.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SpeechRecognitionAPI || !window.speechSynthesis) {
+    document.getElementById('voice-unsupported').classList.remove('hidden');
+} else {
+    runInterview();
+}
+
+function setOrbState(state) {
+    orbCore.className = 'relative w-24 h-24 rounded-full shadow-lg transition-all duration-300';
+    orbRing.className = 'absolute inset-0 rounded-full transition-all duration-300';
+    const styles = {
+        speaking: ['bg-gradient-to-br from-amber-400 to-amber-600 shadow-amber-500/30 scale-110', 'bg-amber-500/20 pulsing', 'Speaking...'],
+        listening: ['bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/30 scale-105', 'bg-emerald-500/20 pulsing', 'Listening...'],
+        thinking: ['bg-gradient-to-br from-purple-400 to-purple-600 shadow-purple-500/30', 'bg-purple-500/20 pulsing', 'Thinking...'],
+    };
+    const [core, ring, text] = styles[state] || ['bg-gradient-to-br from-amber-400 to-amber-600 shadow-amber-500/30', 'bg-amber-500/10', 'Ready'];
+    orbCore.className += ' ' + core;
+    orbRing.className += ' ' + ring;
+    statusText.textContent = text;
+}
+
+function speak(text) {
+    return new Promise(async (resolve) => {
+        try {
+            const res = await fetch(`/interviews/tts/?text=${encodeURIComponent(text)}`);
+            const blob = await res.blob();
+            const audioUrl = URL.createObjectURL(blob);
+            const audio = new Audio(audioUrl);
+            audio.onended = resolve;
+            audio.onerror = resolve;
+            audio.play();
+        } catch (e) {
+            console.error('TTS failed:', e);
+            resolve();
+        }
+    });
+}
+
+function listen() {
+    return new Promise((resolve) => {
+        const recognition = new SpeechRecognitionAPI();
+        recognition.lang = 'en-IN';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        let finalTranscript = '';
+        let lastActivity = Date.now();
+        let hasSpoken = false;
+        const startTime = Date.now();
+
+        recognition.onresult = (event) => {
+            let interim = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const t = event.results[i][0].transcript;
+                if (event.results[i].isFinal) { finalTranscript += t + ' '; hasSpoken = true; }
+                else { interim += t; hasSpoken = true; }
+            }
+            transcriptText.textContent = finalTranscript + interim;
+            lastActivity = Date.now();
+        };
+
+        recognition.onerror = (event) => {
+            if (event.error !== 'no-speech') console.error('Speech error:', event.error);
+        };
+
+        recognition.onend = () => resolve({ transcript: finalTranscript.trim(), duration: (Date.now() - startTime) / 1000 });
+
+        recognition.start();
+
+        const checkInterval = setInterval(() => {
+            const silentFor = Date.now() - lastActivity;
+            const totalElapsed = Date.now() - startTime;
+            if ((hasSpoken && silentFor > 2000) || totalElapsed > 25000) {
+                clearInterval(checkInterval);
+                recognition.stop();
+            }
+        }, 250);
+    });
+}
+
+async function submitAnswer(questionId, transcript, duration) {
+    const res = await fetch(`/interviews/${sessionId}/voice/answer/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ question_id: questionId, transcript, duration_seconds: duration }),
+    });
+    return res.json();
+}
+
+async function finishInterview() {
+    await fetch(`/interviews/${sessionId}/voice/finish/`, { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') } });
+    window.location.href = `/interviews/${sessionId}/results/`;
+}
+
+async function runInterview() {
+    setOrbState('speaking');
+    statusText.textContent = 'Introducing...';
+    await speak(GREETING_TEXT);
+    await new Promise(r => setTimeout(r, 400));
+
+    for (const q of questions) {
+        questionText.textContent = q.question_text;
+        transcriptText.textContent = '';
+
+        setOrbState('speaking');
+        await speak(q.question_text);
+        await new Promise(r => setTimeout(r, 500));
+
+        setOrbState('listening');
+        const { transcript, duration } = await listen();
+
+        if (!transcript) {
+            transcriptText.textContent = "(didn't catch that — moving on)";
+            continue;
+        }
+
+        setOrbState('thinking');
+        const result = await submitAnswer(q.id, transcript, duration);
+
+        setOrbState('speaking');
+        await speak(result.tip || "Thanks, let's move on.");
+    }
+    questionText.textContent = '';
+    statusText.textContent = 'Interview complete!';
+    await speak("That's the end of the interview. Great job — let's look at how you did.");
+    finishInterview();
+}
+</script>
+{% endblock %}
