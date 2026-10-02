@@ -1,97 +1,36 @@
-import torch
-from transformers import GPT2LMHeadModel, GPT2TokenizerFast
+from google import genai
+from django.conf import settings
+import json
 import re
 
-_model = None
-_tokenizer = None
+_client = None
 
-def _load():
-    global _model, _tokenizer
-    if _model is None:
-        _tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
-        _model = GPT2LMHeadModel.from_pretrained('gpt2')
-        _model.eval()
-    return _model, _tokenizer
+def _get_client():
+    global _client
+    if _client is None:
+        _client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    return _client
 
-
-def _sentence_perplexity(sentence, model, tokenizer):
-    encodings = tokenizer(sentence, return_tensors='pt')
-    input_ids = encodings.input_ids
-    if input_ids.shape[1] < 2:
-        return None
-    with torch.no_grad():
-        outputs = model(input_ids, labels=input_ids)
-    return torch.exp(outputs.loss).item()
-
-
-def _looks_like_heading(unit):
-    """
-    Detects titles/headings (project names, section labels) that aren't
-    real prose and shouldn't be scored for AI-likeness. Real sentences mix
-    capitalized proper nouns with lowercase function words; headings are
-    almost entirely Title-Cased.
-    """
-    words = re.findall(r"[A-Za-z][A-Za-z\-/]*", unit)
-    if len(words) < 3:
-        return True
-    remainder = words[1:]  # skip first word, which is always capitalized anyway
-    cap_count = sum(1 for w in remainder if w[0].isupper())
-    ratio = cap_count / len(remainder)
-    return ratio > 0.6
-
-
-def _clean_and_split(text):
-    lines = [l.strip() for l in text.split('\n') if l.strip()]
-    units = []
-    for line in lines:
-        line = re.sub(r'\s+', ' ', line)
-        parts = re.split(r'(?<=[.!?])\s+', line)
-        units.extend(p.strip() for p in parts if p.strip())
-
-    filtered = []
-    for u in units:
-        words = u.split()
-        if len(words) < 5:
-            continue
-        alpha_chars = sum(c.isalpha() or c.isspace() for c in u)
-        if alpha_chars / max(len(u), 1) < 0.7:
-            continue
-        filtered.append(u)
-
-    # Prefer genuine prose; only fall back to headings if nothing else exists.
-    prose = [u for u in filtered if not _looks_like_heading(u)]
-    return prose if prose else filtered
-
+def _extract_json(text):
+    text = text.strip()
+    text = re.sub(r'^```json\s*|\s*```$', '', text)
+    return json.loads(text)
 
 def analyze_resume_text(text):
-    model, tokenizer = _load()
-    sentences = _clean_and_split(text)
+    client = _get_client()
+    prompt = f"""You are an AI-content detector analyzing a resume for signs of being
+AI-generated versus genuinely human-written.
 
-    if not sentences:
-        return 0.0, []
+Resume text:
+{text[:6000]}
 
-    scored = []
-    for s in sentences:
-        ppl = _sentence_perplexity(s, model, tokenizer)
-        if ppl is not None:
-            ppl = min(ppl, 500)
-            scored.append((s, ppl))
+Rate how likely this resume was AI-generated, from 0 (clearly human — natural, specific,
+technical) to 100 (clearly AI-generated — generic corporate language, buzzwords).
+Also list up to 5 specific sentences that sound most AI-generated, if any (empty list if none stand out).
 
-    if not scored:
-        return 0.0, []
-
-    perplexities = [p for _, p in scored]
-    avg_ppl = sum(perplexities) / len(perplexities)
-
-    mean = avg_ppl
-    variance = sum((p - mean) ** 2 for p in perplexities) / len(perplexities)
-    std_dev = variance ** 0.5
-    burstiness = std_dev / mean if mean > 0 else 0
-
-    perplexity_score = max(0, min(100, 100 - (avg_ppl - 30) * (100 / 180)))
-    burstiness_score = max(0, min(100, 100 - burstiness * 150))
-    overall_score = round((perplexity_score * 0.75 + burstiness_score * 0.25), 1)
-    scored.sort(key=lambda x: x[1])
-    flagged = [s for s, p in scored[:max(1, len(scored) // 4)]]
-
-    return overall_score, flagged
+Return ONLY valid JSON, no other text:
+{{"score": <number>, "flagged_sentences": ["sentence1", "sentence2"]}}
+"""
+    response = client.models.generate_content(model='gemini-3.5-flash-lite', contents=prompt)
+    result = _extract_json(response.text)
+    return float(result.get('score', 0)), result.get('flagged_sentences', [])
