@@ -167,6 +167,7 @@ MAILERS = {
             "username": os.environ.get('EMAIL_HOST_USER'),
             "password": os.environ.get('EMAIL_HOST_PASSWORD'),
             "use_tls": True,
+            "timeout": 10,
         },
     },
 }
