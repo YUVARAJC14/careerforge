@@ -169,6 +169,8 @@ ANYMAIL = {
     "BREVO_API_KEY": os.environ.get('BREVO_API_KEY'),
 }
 
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
+
 LOGIN_REDIRECT_URL = '/'
 ACCOUNT_EMAIL_VERIFICATION = 'optional'  # set to 'mandatory' later once email sending is configured
 MEDIA_URL = '/media/'
