@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'matching',
     'interviews',
     'pgvector.django',
+    'anymail',
 ]
 
 SITE_ID = 1  
@@ -160,19 +161,13 @@ STATIC_URL = 'static/'
 
 MAILERS = {
     "default": {
-        "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
-        "OPTIONS": {
-            "host": os.environ.get('EMAIL_HOST'),
-            "port": int(os.environ.get('EMAIL_PORT', 587)),
-            "username": os.environ.get('EMAIL_HOST_USER'),
-            "password": os.environ.get('EMAIL_HOST_PASSWORD'),
-            "use_tls": True,
-            "timeout": 10,
-        },
+        "BACKEND": "anymail.backends.brevo.EmailBackend",
     },
 }
 
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
+ANYMAIL = {
+    "BREVO_API_KEY": os.environ.get('BREVO_API_KEY'),
+}
 
 LOGIN_REDIRECT_URL = '/'
 ACCOUNT_EMAIL_VERIFICATION = 'optional'  # set to 'mandatory' later once email sending is configured
