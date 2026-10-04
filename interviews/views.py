@@ -156,3 +156,13 @@ def tts_speak(request):
     }
     response = ext_requests.post(url, json=payload, headers=headers, timeout=20)
     return HttpResponse(response.content, content_type="audio/mpeg")
+
+@login_required
+def interview_list(request):
+    sessions = InterviewSession.objects.filter(user=request.user).order_by('-created_at')
+    completed_count = sessions.filter(completed=True).count()
+    return render(request, 'interviews/list.html', {
+        'sessions': sessions,
+        'completed_count': completed_count,
+        'total_count': sessions.count(),
+    })

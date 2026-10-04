@@ -23,7 +23,7 @@ from django.conf.urls.static import static
 from jobs.views import job_matches
 from resumes.views import resume_result
 from interviews.views import start_interview, take_interview, submit_interview, interview_results
-from interviews.views import tts_speak
+from interviews.views import tts_speak, interview_list
 
 from interviews.views import (
     start_interview, take_interview, submit_interview, interview_results,
@@ -47,7 +47,9 @@ urlpatterns = [
     path('interviews/<int:session_id>/voice/answer/', voice_answer, name='voice_answer'),
     path('interviews/<int:session_id>/voice/finish/', finish_voice_interview, name='finish_voice_interview'),
     path('interviews/tts/', tts_speak, name='tts_speak'),
+    path('interviews/', interview_list, name='interview_list'),
 
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+handler404 = 'django.views.defaults.page_not_found'

@@ -1,32 +1,48 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}CareerForge{% endblock %}</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔨</text></svg>">
+    <meta name="description" content="Semantic resume matching, AI-content checks, and voice mock interviews.">
+    <meta property="og:title" content="CareerForge">
+    <meta property="og:description" content="Find your next role, faster.">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        html { scroll-behavior: smooth; }
         body { font-family: 'Inter', sans-serif; background:#0a0a0a; }
-        .font-display { font-family: 'Space Grotesk', sans-serif; }
+        .font-display { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.02em; }
+        .tabular-nums { font-variant-numeric: tabular-nums; }
     </style>
 </head>
+<footer class="border-t border-white/5 mt-20">
+    <div class="max-w-7xl mx-auto px-8 py-6 flex items-center justify-between text-xs text-slate-600">
+        <span>© 2026 CareerForge</span>
+        <div class="flex gap-6">
+            <a href="{% url 'home' %}" class="hover:text-slate-400 transition">Home</a>
+            <a href="https://github.com/YUVARAJC14/careerforge" target="_blank" class="hover:text-slate-400 transition">GitHub</a>
+        </div>
+    </div>
+</footer>
 <body class="text-slate-100 min-h-screen">
 
     <nav class="border-b border-white/5 bg-[#0e0e0e]">
-        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between">
             <a href="{% url 'home' %}" class="font-display text-lg font-bold tracking-tight">
                 Career<span class="text-amber-500">Forge</span>
             </a>
 
             <div class="flex items-center gap-6 text-sm">
                 {% if user.is_authenticated %}
-                    <a href="{% url 'home' %}" class="text-slate-300 hover:text-amber-500 transition">Dashboard</a>
-                    <a href="{% url 'upload_resume' %}" class="text-slate-300 hover:text-amber-500 transition">Resumes</a>                    <a href="{% url 'job_matches' %}" class="text-slate-300 hover:text-amber-500 transition">Jobs</a>
-                    <span class="text-slate-300 hover:text-amber-500 transition">Interviews</span>
-                    <span class="text-slate-600">|</span>
+                    <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}text-amber-500{% else %}text-slate-300 hover:text-amber-500{% endif %} transition">Dashboard</a>
+                    <a href="{% url 'interview_list' %}" class="{% if request.resolver_match.url_name == 'interview_list' %}text-amber-500{% else %}text-slate-300 hover:text-amber-500{% endif %} transition">Interviews</a>
+                    <a href="{% url 'upload_resume' %}" class="{% if request.resolver_match.url_name == 'upload_resume' %}text-amber-500{% else %}text-slate-300 hover:text-amber-500{% endif %} transition">Resumes</a>
+                    <a href="{% url 'job_matches' %}" class="{% if request.resolver_match.url_name == 'job_matches' %}text-amber-500{% else %}text-slate-300 hover:text-amber-500{% endif %} transition">Jobs</a>                    <span class="text-slate-600">|</span>
                     <span class="text-slate-400">{{ user.username }}</span>
                     <a href="{% url 'account_logout' %}" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 transition">Logout</a>
                 {% else %}
@@ -37,7 +53,7 @@
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto px-6 py-10">
+    <main class="max-w-7xl mx-auto px-8 py-10">
         {% if messages %}
         <div class="mb-6 space-y-2">
             {% for message in messages %}
